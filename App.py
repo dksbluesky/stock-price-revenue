@@ -2,45 +2,48 @@ import streamlit as st
 import yfinance as yf
 import plotly.graph_objects as go
 
-# --- 設定網頁標題與寬度 ---
-st.set_page_config(page_title="專業財報儀表板", layout="wide")
+# --- 頁面設定 ---
+st.set_page_config(page_title="財務瀑布圖分析", layout="wide")
 
-# --- 自定義 CSS 讓介面更乾淨 ---
+# CSS 優化 (手機版字體調整)
 st.markdown("""
 <style>
-    .block-container {padding-top: 2rem; padding-bottom: 2rem;}
-    h1 {text-align: center; color: #ffffff;}
+    .block-container {padding-top: 2rem; padding-bottom: 5rem;}
+    h1 {text-align: center;}
 </style>
 """, unsafe_allow_html=True)
 
-st.title("💰 企業資金流向分析")
-st.markdown("<div style='text-align: center; color: #888;'>輸入股票代號，一秒看穿公司是用技術賺錢，還是做苦工</div>", unsafe_allow_html=True)
-st.write("") # 空行
+st.title("📉 企業獲利階梯 (瀑布圖)")
+st.caption("清楚展示每一塊錢的營收，是如何經過層層剝削，最後變成淨利的。")
 
-# --- 上方輸入區 ---
-col1, col2, col3 = st.columns([1, 2, 1])
+# --- 輸入區 ---
+col1, col2 = st.columns([3, 1])
+with col1:
+    ticker = st.text_input("輸入股票代號", value="2330.TW").upper()
 with col2:
-    ticker = st.text_input("請輸入股票代號 (台股加 .TW, 美股直接打)", value="2330.TW").upper()
-    run_btn = st.button("🚀 開始分析", use_container_width=True, type="primary")
+    st.write("") ## 排版用
+    st.write("") 
+    run_btn = st.button("分析", type="primary", use_container_width=True)
 
 if run_btn:
     try:
-        with st.spinner('正在分析財報數據...'):
+        with st.spinner('數據計算中...'):
             stock = yf.Ticker(ticker)
             financials = stock.financials
             
             if financials.empty:
-                st.error(f"找不到 {ticker} 的資料，請確認代號正確。")
+                st.error("找不到資料，請確認代號。")
             else:
                 # 取得最新數據
                 latest = financials.iloc[:, 0]
                 date_str = financials.columns[0].strftime('%Y-%m-%d')
                 currency = stock.info.get('currency', 'TWD')
 
-                # --- 數據處理 ---
+                # --- 數據擷取 ---
                 rev = latest.get('Total Revenue', 0)
                 gross = latest.get('Gross Profit', 0)
                 cost = latest.get('Cost Of Revenue', 0)
+                # 校正數據: 若無直接成本數據，用反推的
                 if cost == 0 and rev > 0: cost = rev - gross
                 
                 op_inc = latest.get('Operating Income', 0)
@@ -48,82 +51,74 @@ if run_btn:
                 net = latest.get('Net Income', 0)
                 tax_int = op_inc - net
 
-                # 計算百分比 (讓使用者更容易懂)
+                # 計算百分比
                 gross_margin = (gross / rev) * 100 if rev else 0
                 net_margin = (net / rev) * 100 if rev else 0
 
-                # --- 設定顏色邏輯 (Sankey 核心) ---
-                # 節點顏色: 營收(藍), 成本/費用(紅), 利潤(綠)
-                node_colors = [
-                    "#2E86C1", # 0 總營收 (藍)
-                    "#E74C3C", # 1 成本 (紅)
-                    "#27AE60", # 2 毛利 (綠)
-                    "#E74C3C", # 3 費用 (紅)
-                    "#27AE60", # 4 營益 (綠)
-                    "#95A5A6", # 5 稅/雜項 (灰)
-                    "#2ECC71"  # 6 淨利 (亮綠)
+                # --- 數字格式化函式 ---
+                def fmt(n):
+                    return f"{n/1e8:.1f}億" if currency == 'TWD' else f"{n/1e9:.1f}B"
+
+                # --- 準備瀑布圖數據 ---
+                # 邏輯: 營收(正) -> 扣成本(負) -> 毛利(小計) -> 扣費用(負) -> 營益(小計) -> 扣稅(負) -> 淨利(總計)
+                
+                x_data = ["總營收", "營業成本", "毛利 (第一關)", "營業費用", "營業利益 (第二關)", "稅/利息/其他", "淨利 (最後所得)"]
+                
+                # y_data 裡的負數代表「往下掉」的階梯
+                y_data = [
+                    rev,            # 營收
+                    -cost,          # 扣成本
+                    0,              # 毛利 (由 Plotly 自動計算，設0即可)
+                    -op_exp,        # 扣費用
+                    0,              # 營益 (自動計算)
+                    -tax_int,       # 扣稅
+                    0               # 淨利 (自動計算)
                 ]
-
-                # 流動顏色: 帶透明度，讓視覺不擁擠
-                # 0->1(成本), 0->2(毛利), 2->3(費用), 2->4(營益), 4->5(稅), 4->6(淨利)
-                link_colors = [
-                    "rgba(231, 76, 60, 0.4)",  # 紅流: 營收->成本 (花掉)
-                    "rgba(39, 174, 96, 0.4)",  # 綠流: 營收->毛利 (賺到)
-                    "rgba(231, 76, 60, 0.4)",  # 紅流: 毛利->費用 (花掉)
-                    "rgba(39, 174, 96, 0.6)",  # 綠流: 毛利->營益 (賺到)
-                    "rgba(149, 165, 166, 0.4)",# 灰流: 營益->稅
-                    "rgba(46, 204, 113, 0.8)"  # 亮綠: 營益->淨利 (最終口袋)
-                ]
-
-                # --- 準備標籤 (加上 % 數與金額簡寫) ---
-                def fmt(num):
-                    if num > 1e9: return f"{num/1e9:.1f}B" # 十億
-                    if num > 1e6: return f"{num/1e6:.1f}M" # 百萬
-                    return f"{num:,.0f}"
-
-                labels = [
-                    f"總營收<br>{fmt(rev)}", 
-                    f"成本 (花掉)<br>{fmt(cost)}", 
-                    f"毛利 (剩{gross_margin:.1f}%)<br>{fmt(gross)}", 
-                    f"營業費用<br>{fmt(op_exp)}", 
-                    f"本業獲利<br>{fmt(op_inc)}", 
-                    f"稅/利息<br>{fmt(tax_int)}", 
-                    f"淨利 (最後實拿 {net_margin:.1f}%)<br>{fmt(net)}"
+                
+                # measure 告訴 Plotly 哪一條是「總數」，哪一條是「變化量」
+                measure = ["absolute", "relative", "total", "relative", "total", "relative", "total"]
+                
+                # 顯示在柱子上的文字
+                text_v = [
+                    f"{fmt(rev)}", 
+                    f"-{fmt(cost)}", 
+                    f"{fmt(gross)}<br>({gross_margin:.1f}%)", 
+                    f"-{fmt(op_exp)}", 
+                    f"{fmt(op_inc)}", 
+                    f"-{fmt(tax_int)}", 
+                    f"{fmt(net)}<br>({net_margin:.1f}%)"
                 ]
 
                 # --- 繪圖 ---
-                fig = go.Figure(data=[go.Sankey(
-                    node=dict(
-                        pad=20, thickness=20,
-                        line=dict(color="white", width=0.5),
-                        label=labels,
-                        color=node_colors,
-                        hovertemplate='%{label}<extra></extra>' # 滑鼠移過去顯示清楚
-                    ),
-                    link=dict(
-                        source=[0, 0, 2, 2, 4, 4],
-                        target=[1, 2, 3, 4, 5, 6],
-                        value=[cost, gross, op_exp, op_inc, tax_int, net],
-                        color=link_colors
-                    )
-                )])
-                
-                # 更新版面設定 (背景透明，字體放大)
+                fig = go.Figure(go.Waterfall(
+                    name = "20", orientation = "v",
+                    measure = measure,
+                    x = x_data,
+                    textposition = "outside",
+                    text = text_v,
+                    y = y_data,
+                    connector = {"line":{"color":"rgb(63, 63, 63)"}},
+                    # 設定顏色: 增加(綠), 減少(紅), 總計(藍)
+                    increasing = {"marker":{"color":"#2ECC71"}}, # 綠
+                    decreasing = {"marker":{"color":"#E74C3C"}}, # 紅
+                    totals     = {"marker":{"color":"#3498DB"}}   # 藍 (小計/總計)
+                ))
+
                 fig.update_layout(
-                    title_text=f"{ticker} ({date_str}) 單位: {currency}",
-                    font=dict(size=14, color="white"),
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    plot_bgcolor='rgba(0,0,0,0)',
+                    title = f"{ticker} 獲利結構瀑布圖 ({date_str})",
+                    showlegend = False,
+                    font=dict(size=14),
                     height=600
                 )
-                
+
                 st.plotly_chart(fig, use_container_width=True)
-                
-                # --- 下方重點指標 ---
-                m1, m2, m3 = st.columns(3)
-                m1.metric("💰 總營收", fmt(rev))
-                m2.metric("📈 毛利率 (技術力)", f"{gross_margin:.1f}%")
-                m3.metric("💵 淨利率 (真實獲利)", f"{net_margin:.1f}%")
+
+                # --- 下方重點摘要 ---
+                st.markdown("### 📊 快速解讀")
+                c1, c2, c3 = st.columns(3)
+                c1.metric("營收規模", fmt(rev))
+                c2.metric("毛利率 (扣完成本)", f"{gross_margin:.1f}%", help="越高代表產品越有競爭力")
+                c3.metric("淨利率 (扣完全部)", f"{net_margin:.1f}%", help="真正放進口袋的錢")
 
     except Exception as e:
         st.error(f"發生錯誤: {e}")
