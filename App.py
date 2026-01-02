@@ -1,7 +1,6 @@
 import streamlit as st
 import yfinance as yf
 import plotly.graph_objects as go
-import requests
 
 # --- 頁面設定 ---
 st.set_page_config(page_title="財務瀑布圖分析", layout="wide")
@@ -16,18 +15,13 @@ st.markdown("""
 
 st.title("📉 企業獲利階梯 (瀑布圖)")
 
-# --- 核心功能：抓資料 (加上快取與偽裝) ---
-# @st.cache_data 讓系統記住查過的資料 1 小時 (3600秒)，避免重複騷擾 Yahoo
+# --- 核心功能：抓資料 ---
+# 只保留 Cache 快取功能，不手動設定 Session
 @st.cache_data(ttl=3600) 
 def get_stock_data(ticker_symbol):
     try:
-        # 偽裝成 Chrome 瀏覽器
-        session = requests.Session()
-        session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        })
-        
-        stock = yf.Ticker(ticker_symbol, session=session)
+        # 讓 yfinance 自己處理連線
+        stock = yf.Ticker(ticker_symbol)
         financials = stock.financials
         
         if financials.empty:
@@ -70,13 +64,13 @@ if run_btn:
     
     st.info(f"正在搜尋代號: {ticker}")
 
-    # 呼叫上面寫好的抓取功能
+    # 呼叫抓取功能
     data, error_msg = get_stock_data(ticker)
 
     if error_msg:
         st.error(f"❌ {error_msg}")
-        if "Rate limited" in str(error_msg):
-            st.warning("⚠️ Yahoo 目前忙線中 (Rate Limit)，請等待 1 分鐘後再試，或嘗試查詢美股 (如 AAPL)。")
+        if "Too Many Requests" in str(error_msg):
+             st.warning("⚠️ Yahoo 目前忙線中，請稍後再試。")
     elif data:
         # --- 數據計算 ---
         rev = data['rev']
@@ -101,40 +95,4 @@ if run_btn:
         y_data = [rev, -cost, 0, -op_exp, 0, -tax_int, 0]
         measure = ["absolute", "relative", "total", "relative", "total", "relative", "total"]
         text_v = [
-            f"{fmt(rev)}", 
-            f"-{fmt(cost)}", 
-            f"{fmt(gross)}<br>({gross_margin:.1f}%)", 
-            f"-{fmt(op_exp)}", 
-            f"{fmt(op_inc)}", 
-            f"-{fmt(tax_int)}", 
-            f"{fmt(net)}<br>({net_margin:.1f}%)"
-        ]
-
-        # --- 繪圖 ---
-        fig = go.Figure(go.Waterfall(
-            name = "20", orientation = "v",
-            measure = measure,
-            x = x_data,
-            textposition = "outside",
-            text = text_v,
-            y = y_data,
-            connector = {"line":{"color":"rgb(63, 63, 63)"}},
-            increasing = {"marker":{"color":"#2ECC71"}},
-            decreasing = {"marker":{"color":"#E74C3C"}},
-            totals     = {"marker":{"color":"#3498DB"}}
-        ))
-
-        fig.update_layout(
-            title = f"{ticker} 獲利結構 ({data['date']})",
-            showlegend = False,
-            font=dict(size=14),
-            height=600
-        )
-
-        st.plotly_chart(fig, use_container_width=True)
-
-        st.markdown("### 📊 重點摘要")
-        c1, c2, c3 = st.columns(3)
-        c1.metric("營收", fmt(rev))
-        c2.metric("毛利率", f"{gross_margin:.1f}%")
-        c3.metric("淨利率", f"{net_margin:.1f}%")
+            f"{fmt(rev)}",
