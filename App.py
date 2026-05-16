@@ -20,13 +20,17 @@ st.title("📉 企業獲利階梯 (瀑布圖)")
 # 既然是 2026 年初，我們用 2025 全年的推算數據做備份
 BACKUP_DATA = {
     '2330.TW': {
-        'rev': 3105000000000,   # 營收 (模擬成長)
-        'gross': 1750000000000, # 毛利
-        'cost': 1355000000000,  # 成本
-        'op_inc': 1420000000000, # 營業利益
-        'net': 1250000000000,    # 淨利
+        'rev': 3105000000000,
+        'gross': 1750000000000,
+        'cost': 1355000000000,
+        'op_inc': 1420000000000,
+        'net': 1250000000000,
         'currency': 'TWD',
-        'date': '2025-12-31 (年度推算)' # 更新日期
+        'date': '2025-12-31 (年度推算)',
+        'eps': 48.2,
+        'pe': 24.5,
+        'fwd_pe': 21.8,
+        'fwd_eps': 55.0,
     }
 }
 
@@ -43,8 +47,9 @@ def get_stock_data(ticker_symbol):
         if not financials.empty:
             latest = financials.iloc[:, 0]
             date_str = financials.columns[0].strftime('%Y-%m-%d')
-            currency = stock.info.get('currency', 'TWD')
-            
+            info = stock.info
+            currency = info.get('currency', 'TWD')
+
             data = {
                 'rev': latest.get('Total Revenue', 0),
                 'gross': latest.get('Gross Profit', 0),
@@ -53,7 +58,11 @@ def get_stock_data(ticker_symbol):
                 'net': latest.get('Net Income', 0),
                 'currency': currency,
                 'date': date_str,
-                'source': 'Yahoo Finance'
+                'source': 'Yahoo Finance',
+                'eps': info.get('trailingEps'),
+                'pe': info.get('trailingPE'),
+                'fwd_pe': info.get('forwardPE'),
+                'fwd_eps': info.get('forwardEps'),
             }
             return data, None
             
@@ -151,6 +160,20 @@ if run_btn:
         c1.metric("營收", fmt(rev))
         c2.metric("毛利率", f"{gross_margin:.1f}%")
         c3.metric("淨利率", f"{net_margin:.1f}%")
+
+        st.markdown("### 💹 估值指標")
+        v1, v2, v3, v4 = st.columns(4)
+
+        eps = data.get('eps')
+        pe = data.get('pe')
+        fwd_pe = data.get('fwd_pe')
+        fwd_eps = data.get('fwd_eps')
+        currency = data.get('currency', 'TWD')
+
+        v1.metric("EPS (TTM)", f"{eps:.2f} {currency}" if eps else "N/A")
+        v2.metric("本益比 P/E", f"{pe:.1f}x" if pe else "N/A")
+        v3.metric("遠期本益比 Fwd P/E", f"{fwd_pe:.1f}x" if fwd_pe else "N/A")
+        v4.metric("預估 EPS (Fwd)", f"{fwd_eps:.2f} {currency}" if fwd_eps else "N/A")
     
     else:
         st.error("❌ 找不到數據。Yahoo 暫時封鎖了連線，請稍後再試。")
