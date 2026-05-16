@@ -27,6 +27,8 @@ BACKUP_DATA = {
         'net': 1250000000000,
         'currency': 'TWD',
         'date': '2025-12-31 (年度推算)',
+        'current_price': 935.0,
+        'price_date': '2025-12-31',
         'eps': 48.2,
         'pe': 24.5,
         'fwd_pe': 21.8,
@@ -63,6 +65,8 @@ def get_stock_data(ticker_symbol):
                 'pe': info.get('trailingPE'),
                 'fwd_pe': info.get('forwardPE'),
                 'fwd_eps': info.get('forwardEps'),
+                'current_price': info.get('currentPrice') or info.get('regularMarketPrice'),
+                'price_date': pd.Timestamp(info['regularMarketTime'], unit='s').strftime('%Y-%m-%d') if info.get('regularMarketTime') else date_str,
             }
             return data, None
             
@@ -156,10 +160,16 @@ if run_btn:
         st.plotly_chart(fig, use_container_width=True)
 
         st.markdown("### 📊 重點摘要")
-        c1, c2, c3 = st.columns(3)
+        c1, c2, c3, c4 = st.columns(4)
         c1.metric("營收", fmt(rev))
         c2.metric("毛利率", f"{gross_margin:.1f}%")
         c3.metric("淨利率", f"{net_margin:.1f}%")
+        current_price = data.get('current_price')
+        price_date = data.get('price_date', '')
+        c4.metric(
+            f"股價 ({price_date})",
+            f"{current_price:.2f} {data.get('currency', '')}" if current_price else "N/A"
+        )
 
         st.markdown("### 💹 估值指標")
         v1, v2, v3, v4 = st.columns(4)
