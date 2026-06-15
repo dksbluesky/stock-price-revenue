@@ -1,0 +1,54 @@
+* { box-sizing: border-box; font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+body { margin: 0; background: #f7f8fa; color: #222222; }
+.container { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+h1 { margin-bottom: 0; text-align: center; }
+h2 { margin-top: 4px; color: #666; font-size: 1.05rem; font-weight: normal; text-align: center; }
+
+/* ── Controls ─────────────────────────────────────────────────────────── */
+.settings { background: #ffffff; border: 1px solid #dde1e6; border-radius: 8px; padding: 16px; margin-top: 16px; }
+.row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.row label { display: flex; flex-direction: column; font-size: 0.85rem; color: #555; gap: 4px; }
+input { background: #ffffff; border: 1px solid #c7ccd3; border-radius: 6px; color: #222222; padding: 10px; font-size: 1rem; width: 160px; }
+button#runBtn { background: #2196F3; color: white; border: none; border-radius: 6px; padding: 11px 28px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+button#runBtn:hover { background: #42a5f5; }
+button#runBtn:disabled { background: #aaa; cursor: not-allowed; }
+
+.quick-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.quick-btn {
+  background: #eef6ff; border: 1px solid #bfdcff; border-radius: 14px; padding: 4px 12px;
+  font-size: 0.8rem; cursor: pointer; color: #0b5fa5;
+}
+.quick-btn:hover { background: #d6ebff; }
+
+#status { margin: 16px 0; font-size: 0.95rem; }
+.error { color: #c0392b; }
+.warn { color: #b8860b; }
+.success { color: #1e8449; }
+.hidden { display: none; }
+
+/* ── Header card ──────────────────────────────────────────────────────── */
+.stock-header { background: #ffffff; border: 1px solid #dde1e6; border-radius: 8px; padding: 14px 18px; margin-top: 16px; }
+.stock-header .name { font-size: 1.3rem; font-weight: 700; color: #1a3c5e; }
+.stock-header .meta { font-size: 0.85rem; color: #888; margin-top: 2px; }
+
+/* ── Metric boxes ─────────────────────────────────────────────────────── */
+.metrics-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 14px; }
+.metric-box { background: #ffffff; border: 1px solid #dee2e6; border-radius: 8px; padding: 10px 14px; }
+.metric-label { font-size: 0.78rem; color: #666; }
+.metric-value { font-size: 1.35rem; font-weight: 700; color: #1a3c5e; }
+.metric-sub { font-size: 0.78rem; color: #999; margin-top: 2px; }
+
+/* ── Section headers ──────────────────────────────────────────────────── */
+.sec-hdr {
+  font-size: 1.05rem; font-weight: 700; color: #1a3c5e;
+  border-left: 4px solid #2196F3;
+  padding-left: 8px; margin: 1.6rem 0 0.6rem;
+}
+
+/* ── Chart cards ──────────────────────────────────────────────────────── */
+.chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 16px; }
+.chart-box { background: #ffffff; border: 1px solid #dde1e6; border-radius: 8px; padding: 14px; }
+.chart-box.tall canvas { max-height: 480px; }
+.chart-title { font-size: 0.9rem; font-weight: 600; color: #1a3c5e; margin-bottom: 8px; }
+
+footer { text-align: center; font-size: 0.78rem; color: #aaa; margin-top: 32px; }

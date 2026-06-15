@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📊 股票財報儀表板 Stock Financial Dashboard</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div class="container">
+  <h1>📊 股票財報儀表板</h1>
+  <h2>Stock Financial Dashboard — 獲利結構 · 趨勢 · 估值 (台股)</h2>
+
+  <div class="settings">
+    <div class="row">
+      <label>股票代號 Ticker <input type="text" id="tickerInput" placeholder="例如 2330" maxlength="6"></label>
+      <button id="runBtn">🔍 分析</button>
+    </div>
+    <div class="quick-row" id="quickRow"></div>
+  </div>
+
+  <div id="status"></div>
+
+  <div class="stock-header">
+    <div class="name" id="stockName">—</div>
+    <div class="meta" id="stockMeta">輸入股票代號開始分析</div>
+  </div>
+
+  <div id="results" class="hidden">
+    <div class="metrics-row">
+      <div class="metric-box">
+        <div class="metric-label">股價 Price</div>
+        <div class="metric-value" id="kpiPrice">—</div>
+        <div class="metric-sub" id="kpiPriceSub"></div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">營收 Revenue (TTM)</div>
+        <div class="metric-value" id="kpiRev">—</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">毛利率 Gross Margin</div>
+        <div class="metric-value" id="kpiGrossMargin">—</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">淨利率 Net Margin</div>
+        <div class="metric-value" id="kpiNetMargin">—</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">EPS (TTM)</div>
+        <div class="metric-value" id="kpiEps">—</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">本益比 P/E</div>
+        <div class="metric-value" id="kpiPe">—</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">殖利率 Dividend Yield</div>
+        <div class="metric-value" id="kpiDiv">—</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">股價淨值比 P/B</div>
+        <div class="metric-value" id="kpiPb">—</div>
+      </div>
+    </div>
+
+    <div class="sec-hdr">📉 獲利結構瀑布圖</div>
+    <div class="chart-box tall">
+      <canvas id="waterfallCanvas"></canvas>
+    </div>
+
+    <div class="sec-hdr">📈 趨勢分析 (近八季)</div>
+    <div class="chart-grid">
+      <div class="chart-box"><canvas id="trendCanvas"></canvas></div>
+      <div class="chart-box"><canvas id="marginCanvas"></canvas></div>
+      <div class="chart-box"><canvas id="epsCanvas"></canvas></div>
+      <div class="chart-box"><canvas id="priceCanvas"></canvas></div>
+    </div>
+  </div>
+
+  <footer>
+    資料來源: FinMind API (TaiwanStockFinancialStatements / TaiwanStockPER / TaiwanStockPrice) ｜ 僅供參考，非投資建議
+  </footer>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
