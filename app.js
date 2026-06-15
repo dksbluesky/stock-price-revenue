@@ -325,6 +325,18 @@ async function analyze(rawTicker) {
     document.getElementById("kpiDiv").textContent = per ? fmtPct(per.dividend_yield) : "N/A";
     document.getElementById("kpiPb").textContent = per ? `${fmtNum(per.PBR, 1)}x` : "N/A";
 
+    // Run-rate forward P/E: annualize the latest quarter's EPS (not analyst consensus)
+    const latestEps = latestQ.EPS;
+    if (price && latestEps) {
+      const fwdEps = latestEps * 4;
+      const fwdPe = price.close / fwdEps;
+      document.getElementById("kpiFwdPe").textContent = `${fmtNum(fwdPe, 1)}x`;
+      document.getElementById("kpiFwdPeSub").textContent = `Fwd EPS ≈ ${fmtNum(fwdEps)} (${quarterLabel(latestQ.date)}×4)`;
+    } else {
+      document.getElementById("kpiFwdPe").textContent = "N/A";
+      document.getElementById("kpiFwdPeSub").textContent = "";
+    }
+
     // Charts
     renderWaterfall(ttm);
     renderQuarterlyTrend(quarters);
